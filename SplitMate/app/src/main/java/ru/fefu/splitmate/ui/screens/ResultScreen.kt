@@ -30,7 +30,6 @@ fun ResultScreen(
             verticalArrangement = Arrangement.Center
         ) {
             if (calculation == null) {
-
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -60,7 +59,6 @@ fun ResultScreen(
                     }
                 }
             } else {
-
                 val format = NumberFormat.getNumberInstance(Locale.getDefault()).apply {
                     maximumFractionDigits = 2
                     minimumFractionDigits = 2
@@ -96,7 +94,6 @@ fun ResultScreen(
                     Column(
                         modifier = Modifier.padding(24.dp)
                     ) {
-
                         ResultRow(
                             label = "Общая сумма:",
                             value = "${format.format(calculation.totalAmount)} ₽"
@@ -123,17 +120,16 @@ fun ResultScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-
+                        // ИЗМЕНЕНО: calculation.totalPerPerson вместо calculation.perPerson
                         ResultRow(
                             label = "На ${calculation.peopleCount} ${peopleWord(calculation.peopleCount)}:",
-                            value = "${format.format(calculation.perPerson)} ₽",
+                            value = "${format.format(calculation.totalPerPerson)} ₽", // ИЗМЕНЕНО
                             isHighlighted = true
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
-
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -172,7 +168,6 @@ fun ResultScreen(
         }
     }
 }
-
 
 private fun peopleWord(count: Int): String {
     return when {
