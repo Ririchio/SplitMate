@@ -120,10 +120,9 @@ fun ResultScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // ИЗМЕНЕНО: calculation.totalPerPerson вместо calculation.perPerson
                         ResultRow(
                             label = "На ${calculation.peopleCount} ${peopleWord(calculation.peopleCount)}:",
-                            value = "${format.format(calculation.totalPerPerson)} ₽", // ИЗМЕНЕНО
+                            value = "${format.format(calculation.totalPerPerson)} ₽",
                             isHighlighted = true
                         )
                     }

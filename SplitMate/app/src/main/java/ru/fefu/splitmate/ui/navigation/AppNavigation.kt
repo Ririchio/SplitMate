@@ -2,49 +2,32 @@ package ru.fefu.splitmate.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.navigation.NavHostController
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import kotlinx.coroutines.flow.collectLatest
 import ru.fefu.splitmate.ui.screens.HomeScreen
 import ru.fefu.splitmate.ui.screens.InputScreen
 import ru.fefu.splitmate.ui.screens.ResultScreen
 import ru.fefu.splitmate.ui.viewmodel.SplitViewModel
 import ru.fefu.splitmate.ui.viewmodel.NavigationEvent
 import ru.fefu.splitmate.ui.viewmodel.SplitEvent
-
-object Routes {
-    const val HOME = "home"
-    const val INPUT = "input"
-    const val RESULT = "result/{calcId}"
-
-    fun createResultRoute(calcId: String): String {
-        return "result/$calcId"
-    }
-}
+import ru.fefu.splitmate.ui.viewmodel.SplitUiState
 
 @Composable
 fun AppNavigation(viewModel: SplitViewModel) {
     val navController = rememberNavController()
 
-    val state by viewModel.state.collectAsState()
 
-    val uiState = state.uiState
+    val state = viewModel.state.observeAsState()
 
-
-    LaunchedEffect(viewModel) {
-        viewModel.navigationEvents.collectLatest { event ->
+    LaunchedEffect(key1 = viewModel) {
+        viewModel.setNavigationCallback { event ->
             when (event) {
                 is NavigationEvent.NavigateToResult -> {
-                    val calculation = viewModel.getCalculationById(event.calculationId)
-                    if (calculation != null) {
-                        navController.navigate(Routes.createResultRoute(event.calculationId))
-                    }
+                    navController.navigate(Routes.createResultRoute(event.calculationId))
                 }
                 NavigationEvent.NavigateBack -> {
                     navController.popBackStack()
@@ -64,8 +47,10 @@ fun AppNavigation(viewModel: SplitViewModel) {
         }
 
         composable(Routes.INPUT) {
+            val currentState = state.value?.uiState ?: SplitUiState()
+
             InputScreen(
-                state = uiState,
+                state = currentState,
                 onEvent = viewModel::onEvent,
                 onBack = { navController.popBackStack() }
             )
@@ -79,7 +64,7 @@ fun AppNavigation(viewModel: SplitViewModel) {
             val calculation = viewModel.getCalculationById(calcId)
 
             if (calculation == null) {
-                LaunchedEffect(calcId) {
+                LaunchedEffect(key1 = calcId) {
                     navController.popBackStack(Routes.INPUT, inclusive = false)
                 }
                 return@composable
@@ -98,5 +83,15 @@ fun AppNavigation(viewModel: SplitViewModel) {
                 }
             )
         }
+    }
+}
+
+object Routes {
+    const val HOME = "home"
+    const val INPUT = "input"
+    const val RESULT = "result/{calcId}"
+
+    fun createResultRoute(calcId: String): String {
+        return "result/$calcId"
     }
 }

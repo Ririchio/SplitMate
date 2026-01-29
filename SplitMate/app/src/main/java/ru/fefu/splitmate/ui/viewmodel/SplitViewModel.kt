@@ -1,67 +1,61 @@
 package ru.fefu.splitmate.ui.viewmodel
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.launch
 import ru.fefu.splitmate.data.model.Calculation
 import ru.fefu.splitmate.data.model.TipOption
 import ru.fefu.splitmate.data.model.defaultTipOptions
-import java.util.*
 
 class SplitViewModel : ViewModel() {
 
-    private val _state = MutableStateFlow(SplitState())
-    val state: StateFlow<SplitState> = _state.asStateFlow()
+    private val _state = MutableLiveData(SplitState())
+    val state: LiveData<SplitState> = _state
 
-    private val _navigationEvents = Channel<NavigationEvent>()
-    val navigationEvents = _navigationEvents.receiveAsFlow()
+    private var _navigationCallback: ((NavigationEvent) -> Unit)? = null
+
+    fun setNavigationCallback(callback: (NavigationEvent) -> Unit) {
+        _navigationCallback = callback
+    }
 
     init {
         _state.value = SplitState(
             uiState = SplitUiState(
                 peopleCount = "1",
                 peopleCountInt = 1,
-                selectedTip = defaultTipOptions[2]
+                selectedTip = defaultTipOptions.getOrElse(2) { defaultTipOptions[0] }
             )
         )
     }
 
     fun onEvent(event: SplitEvent) {
-        val currentState = _state.value
+        val currentState = _state.value ?: return
 
         when (event) {
             is SplitEvent.UpdateTotal -> {
                 val newTotal = event.value.toDoubleOrNull() ?: 0.0
-                _state.value = currentState.copy(
-                    uiState = currentState.uiState.copy(
-                        totalAmount = event.value,
-                        totalAmountDouble = newTotal,
-                        isCalculateEnabled = isInputValid(newTotal, currentState.uiState.peopleCountInt)
-                    )
+                val newUiState = currentState.uiState.copy(
+                    totalAmount = event.value,
+                    totalAmountDouble = newTotal,
+                    isCalculateEnabled = isInputValid(newTotal, currentState.uiState.peopleCountInt)
                 )
+                _state.value = currentState.copy(uiState = newUiState)
             }
 
             is SplitEvent.UpdatePeople -> {
                 val newPeople = event.value.toIntOrNull() ?: 1
                 val validPeople = newPeople.coerceAtLeast(1)
-                _state.value = currentState.copy(
-                    uiState = currentState.uiState.copy(
-                        peopleCount = validPeople.toString(),
-                        peopleCountInt = validPeople,
-                        isCalculateEnabled = isInputValid(currentState.uiState.totalAmountDouble, validPeople)
-                    )
+                val newUiState = currentState.uiState.copy(
+                    peopleCount = validPeople.toString(),
+                    peopleCountInt = validPeople,
+                    isCalculateEnabled = isInputValid(currentState.uiState.totalAmountDouble, validPeople)
                 )
+                _state.value = currentState.copy(uiState = newUiState)
             }
 
             is SplitEvent.SelectTip -> {
-                _state.value = currentState.copy(
-                    uiState = currentState.uiState.copy(selectedTip = event.tipOption)
-                )
+                val newUiState = currentState.uiState.copy(selectedTip = event.tipOption)
+                _state.value = currentState.copy(uiState = newUiState)
             }
 
             SplitEvent.Calculate -> {
@@ -71,12 +65,10 @@ class SplitViewModel : ViewModel() {
                 val calculation = createCalculation(uiState)
 
                 _state.value = currentState.copy(
-                    calculations = (currentState.calculations + calculation).takeLast(5)
+                    calculations = currentState.calculations + calculation
                 )
 
-                viewModelScope.launch {
-                    _navigationEvents.send(NavigationEvent.NavigateToResult(calculation.id))
-                }
+                _navigationCallback?.invoke(NavigationEvent.NavigateToResult(calculation.id))
             }
 
             SplitEvent.Reset -> {
@@ -84,24 +76,23 @@ class SplitViewModel : ViewModel() {
                     uiState = SplitUiState(
                         peopleCount = "1",
                         peopleCountInt = 1,
-                        selectedTip = defaultTipOptions[2]
-                    )
+                        selectedTip = defaultTipOptions.getOrElse(2) { defaultTipOptions[0] }
+                    ),
+                    calculations = emptyList()
                 )
             }
         }
     }
 
     fun getCalculationById(id: String): Calculation? {
-        return _state.value.calculations.find { it.id == id }
+        return _state.value?.calculations?.find { it.id == id }
     }
 
     private fun createCalculation(uiState: SplitUiState): Calculation {
         return Calculation(
-            id = UUID.randomUUID().toString(),
             totalAmount = uiState.totalAmountDouble,
             peopleCount = uiState.peopleCountInt,
-            tipPercentage = uiState.selectedTip.percentage,
-            timestamp = System.currentTimeMillis()
+            tipPercentage = uiState.selectedTip.percentage
         )
     }
 
@@ -120,7 +111,7 @@ data class SplitUiState(
     val totalAmountDouble: Double = 0.0,
     val peopleCount: String = "1",
     val peopleCountInt: Int = 1,
-    val selectedTip: TipOption = defaultTipOptions[2],
+    val selectedTip: TipOption = defaultTipOptions.first(),
     val isCalculateEnabled: Boolean = false
 )
 
