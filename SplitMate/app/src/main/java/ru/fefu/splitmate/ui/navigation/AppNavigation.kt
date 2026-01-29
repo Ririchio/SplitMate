@@ -2,7 +2,10 @@ package ru.fefu.splitmate.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,15 +16,12 @@ import ru.fefu.splitmate.ui.screens.InputScreen
 import ru.fefu.splitmate.ui.screens.ResultScreen
 import ru.fefu.splitmate.ui.viewmodel.SplitViewModel
 import ru.fefu.splitmate.ui.viewmodel.NavigationEvent
-import ru.fefu.splitmate.ui.viewmodel.SplitEvent
-import ru.fefu.splitmate.ui.viewmodel.SplitUiState
 
 @Composable
 fun AppNavigation(viewModel: SplitViewModel) {
     val navController = rememberNavController()
 
-
-    val state = viewModel.state.observeAsState()
+    val state by remember { viewModel.state }
 
     LaunchedEffect(key1 = viewModel) {
         viewModel.setNavigationCallback { event ->
@@ -47,7 +47,7 @@ fun AppNavigation(viewModel: SplitViewModel) {
         }
 
         composable(Routes.INPUT) {
-            val currentState = state.value?.uiState ?: SplitUiState()
+            val currentState = state.uiState
 
             InputScreen(
                 state = currentState,
@@ -76,7 +76,7 @@ fun AppNavigation(viewModel: SplitViewModel) {
                     navController.popBackStack(Routes.INPUT, inclusive = false)
                 },
                 onNewCalculation = {
-                    viewModel.onEvent(SplitEvent.Reset)
+                    viewModel.onEvent(ru.fefu.splitmate.ui.viewmodel.SplitEvent.Reset)
                     navController.navigate(Routes.INPUT) {
                         popUpTo(Routes.HOME) { inclusive = false }
                     }

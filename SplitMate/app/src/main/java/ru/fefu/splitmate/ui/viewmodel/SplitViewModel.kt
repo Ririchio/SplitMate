@@ -1,16 +1,14 @@
 package ru.fefu.splitmate.ui.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import ru.fefu.splitmate.data.model.Calculation
 import ru.fefu.splitmate.data.model.TipOption
 import ru.fefu.splitmate.data.model.defaultTipOptions
 
 class SplitViewModel : ViewModel() {
-
-    private val _state = MutableLiveData(SplitState())
-    val state: LiveData<SplitState> = _state
+    private val _state = mutableStateOf(SplitState())
+    val state = _state
 
     private var _navigationCallback: ((NavigationEvent) -> Unit)? = null
 
@@ -29,7 +27,7 @@ class SplitViewModel : ViewModel() {
     }
 
     fun onEvent(event: SplitEvent) {
-        val currentState = _state.value ?: return
+        val currentState = _state.value
 
         when (event) {
             is SplitEvent.UpdateTotal -> {
@@ -85,7 +83,7 @@ class SplitViewModel : ViewModel() {
     }
 
     fun getCalculationById(id: String): Calculation? {
-        return _state.value?.calculations?.find { it.id == id }
+        return state.value.calculations.find { it.id == id }
     }
 
     private fun createCalculation(uiState: SplitUiState): Calculation {
